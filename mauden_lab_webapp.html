@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mauden Lab - Document Processing & AI Training Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .error {
+            color: #e53e3e;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .success {
+            color: #38a169;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e6fffa;
+        }
+
+        .file-list {
+            margin-top: 1rem;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            background: #f7fafc;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .chat-container {
+            height: 400px;
+            border: 1px solid #e2e8f0;
+            border-radius: 15px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #f7fafc;
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.bot {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-success { background: #38a169; }
+        .status-error { background: #e53e3e; }
+        .status-warning { background: #ed8936; }
+        .status-info { background: #3182ce; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .stats-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .validation-result {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .validation-success {
+            background: #c6f6d5;
+            border: 1px solid #38a169;
+            color: #2f855a;
+        }
+
+        .validation-error {
+            background: #fed7d7;
+            border: 1px solid #e53e3e;
+            color: #c53030;
+        }
+
+        pre {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 1rem;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="logo">🔬 Mauden Lab</div>
+            <div class="nav-links" id="navLinks">
+                <button class="btn btn-secondary" onclick="showSection('login')">Login</button>
+                <button class="btn btn-primary" onclick="showSection('register')">Registrati</button>
+            </div>
+        </nav>
+
+        <!-- Login Section -->
+        <div id="loginSection" class="card">
+            <h2>🔐 Accesso</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email Aziendale</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Accedi</button>
+                <p>Non hai un account? <a href="#" onclick="showSection('register')">Registrati qui</a></p>
+            </form>
+        </div>
+
+        <!-- Register Section -->
+        <div id="registerSection" class="card hidden">
+            <h2>📝 Registrazione</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="firstName">Nome</label>
+                    <input type="text" id="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Cognome</label>
+                    <input type="text" id="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Aziendale</label>
+                    <input type="email" id="email" required>
+                    <div class="error" id="emailError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                    <div class="error" id="passwordError"></div>
+                    <small>La password deve contenere almeno 8 caratteri, una maiuscola, una minuscola, un numero e un carattere speciale</small>
+                </div>
+                <div class="form-group">
+                    <label for="company">Nome Azienda</label>
+                    <input type="text" id="company" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">Ruolo/Posizione</label>
+                    <select id="role" required>
+                        <option value="">Seleziona ruolo</option>
+                        <option value="ceo">CEO</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Amministratore</option>
+                        <option value="accountant">Contabile</option>
+                        <option value="employee">Dipendente</option>
+                        <option value="consultant">Consulente</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Registrati</button>
+                <p>Hai già un account? <a href="#" onclick="showSection('login')">Accedi qui</a></p>
+            </form>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboardSection" class="hidden">
+            <!-- Welcome Header -->
+            <div class="card">
+                <h1>Benvenuto nel tuo Dashboard Mauden Lab</h1>
+                <p>Gestisci i tuoi documenti aziendali e addestra il tuo assistente AI personalizzato</p>
+                <div class="nav-links">
+                    <button class="btn btn-primary" onclick="showTab('upload')">📄 Upload Documenti</button>
+                    <button class="btn btn-primary" onclick="showTab('validation')">✅ Validazione</button>
+                    <button class="btn btn-primary" onclick="showTab('training')">🧠 Training AI</button>
+                    <button class="btn btn-primary" onclick="showTab('chat')">💬 Chatbot</button>
+                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid">
+                <div class="card stats-card">
+                    <div class="stats-number" id="documentsCount">0</div>
+                    <div>Documenti Caricati</div>
+                </div>
+                <div class="card stats-card">
+                    <div class="stats-number" id="validatedCount">0</div>
+                    <div>File Validati</div>
+                </div>
+                <div class="card stats-card">
+                    <div class="stats-number" id="trainedCount">0</div>
+                    <div>Sessioni Training</div>
+                </div>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="uploadTab" class="card">
+                <h3>📄 Caricamento e Conversione Documenti</h3>
+                <div class="upload-area" id="uploadArea">
+                    <div>
+                        <h4>Trascina qui i tuoi file o clicca per selezionare</h4>
+                        <p>Supportiamo: PDF, DOC, DOCX, TXT</p>
+                        <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.txt" style="display: none;">
+                    </div>
+                </div>
+                <div class="file-list" id="fileList"></div>
+                <div class="progress-bar hidden" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- Validation Tab -->
+            <div id="validationTab" class="card hidden">
+                <h3>✅ Validazione JSON/YAML</h3>
+                <select id="formatSelect" class="form-group">
+                    <option value="json">JSON</option>
+                    <option value="yaml">YAML</option>
+                </select>
+                <textarea id="validationInput" rows="15" placeholder="Incolla qui il tuo JSON o YAML per la validazione..."></textarea>
+                <button class="btn btn-primary" onclick="validateData()">Valida</button>
+                <div id="validationResult"></div>
+            </div>
+
+            <!-- Training Tab -->
+            <div id="trainingTab" class="card hidden">
+                <h3>🧠 Training Modello TinyLLaMA</h3>
+                <div class="form-group">
+                    <label>Stato Modello: <span class="status-indicator status-info"></span> TinyLLaMA 1.1B - Pronto</label>
+                </div>
+                <div class="form-group">
+                    <label for="trainingData">Dati di Training (JSON/YAML validati)</label>
+                    <textarea id="trainingData" rows="10" placeholder="I dati validati appariranno qui automaticamente..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="epochs">Numero di Epoche</label>
+                    <input type="number" id="epochs" value="5" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label for="learningRate">Learning Rate</label>
+                    <input type="number" id="learningRate" value="0.001" step="0.0001" min="0.0001" max="0.1">
+                </div>
+                <button class="btn btn-primary" onclick="startTraining()">Avvia Training</button>
+                <div id="trainingStatus"></div>
+                <div class="progress-bar hidden" id="trainingProgress">
+                    <div class="progress-fill" id="trainingFill"></div>
+                </div>
+            </div>
+
+            <!-- Chat Tab -->
+            <div id="chatTab" class="card hidden">
+                <h3>💬 Chatbot Aziendale</h3>
+                <div class="form-group">
+                    <label>Stato: <span class="status-indicator" id="chatStatus"></span> <span id="chatStatusText">Modello non addestrato</span></label>
+                </div>
+                <div class="chat-container" id="chatContainer">
+                    <div class="message bot">
+                        Ciao! Sono il tuo assistente AI personalizzato per la gestione aziendale. Per iniziare, carica e addestra il modello con i tuoi documenti.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="chatInput" placeholder="Scrivi la tua domanda..." disabled>
+                    <button class="btn btn-primary" onclick="sendMessage()" disabled id="sendButton">Invia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentUser = null;
+        let uploadedDocuments = [];
+        let validatedData = null;
+        let modelTrained = false;
+        let trainingData = [];
+
+        // Initialize PDF.js
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // Navigation functions
+        function showSection(section) {
+            document.querySelectorAll('#loginSection, #registerSection, #dashboardSection').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById(section + 'Section').classList.remove('hidden');
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('#uploadTab, #validationTab, #trainingTab, #chatTab').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+        }
+
+        // Authentication
+        function validateEmail(email) {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return emailRegex.test(email);
+        }
+
+        function validatePassword(password) {
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+            return passwordRegex.test(password);
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Validate email
+            if (!validateEmail(email)) {
+                document.getElementById('emailError').textContent = 'Inserire un email aziendale valida';
+                return;
+            } else {
+                document.getElementById('emailError').textContent = '';
+            }
+            
+            // Validate password
+            if (!validatePassword(password)) {
+                document.getElementById('passwordError').textContent = 'La password non rispetta i requisiti richiesti';
+                return;
+            } else {
+                document.getElementById('passwordError').textContent = '';
+            }
+            
+            // Simulate registration
+            const userData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: email,
+                company: document.getElementById('company').value,
+                role: document.getElementById('role').value
+            };
+            
+            currentUser = userData;
+            showDashboard();
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Simulate login
+            currentUser = {
+                firstName: 'Demo',
+                lastName: 'User',
+                email: document.getElementById('loginEmail').value,
+                company: 'Demo Company',
+                role: 'manager'
+            };
+            
+            showDashboard();
+        });
+
+        function showDashboard() {
+            showSection('dashboard');
+            updateNavbar();
+            showTab('upload');
+            updateStats();
+        }
+
+        function updateNavbar() {
+            document.getElementById('navLinks').innerHTML = `
+                <span>Benvenuto, ${currentUser.firstName}!</span>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            `;
+        }
+
+        function logout() {
+            currentUser = null;
+            modelTrained = false;
+            uploadedDocuments = [];
+            validatedData = null;
+            trainingData = [];
+            showSection('login');
+            document.getElementById('navLinks').innerHTML = `
+                <button class="btn btn-secondary" onclick="showSection('login')">Login</button>
+                <button class="btn btn-primary" onclick="showSection('register')">Registrati</button>
+            `;
+        }
+
+        // File upload functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            progressBar.classList.remove('hidden');
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const progress = ((i + 1) / files.length) * 100;
+                progressFill.style.width = progress + '%';
+                
+                try {
+                    const convertedData = await convertFileToJSON(file);
+                    uploadedDocuments.push({
+                        name: file.name,
+                        originalFile: file,
+                        convertedData: convertedData,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    displayFileItem(file.name, 'success');
+                } catch (error) {
+                    displayFileItem(file.name, 'error', error.message);
+                }
+            }
+            
+            updateStats();
+            setTimeout(() => progressBar.classList.add('hidden'), 1000);
+        }
+
+        async function convertFileToJSON(file) {
+            const fileType = file.type;
+            let content = '';
+            
+            if (fileType === 'application/pdf') {
+                content = await extractPDFText(file);
+            } else if (fileType.includes('word') || file.name.endsWith('.docx')) {
+                content = await extractWordText(file);
+            } else if (fileType === 'text/plain') {
+                content = await file.text();
+            } else {
+                throw new Error('Formato file non supportato');
+            }
+            
+            // Convert to structured JSON format for training
+            const jsonData = {
+                source: file.name,
+                type: detectDocumentType(content),
+                content: content,
+                processed_date: new Date().toISOString(),
+                metadata: {
+                    file_size: file.size,
+                    file_type: fileType,
+                    company: currentUser?.company || 'Unknown'
+                },
+                training_data: extractTrainingData(content)
+            };
+            
+            return jsonData;
+        }
+
+        async function extractPDFText(file) {
+            if (typeof pdfjsLib === 'undefined') {
+                throw new Error('PDF.js non disponibile');
+            }
+            
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            let fullText = '';
+            
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + ' ';
+            }
+            
+            return fullText.trim();
+        }
+
+        async function extractWordText(file) {
+            if (typeof mammoth === 'undefined') {
+                throw new Error('Mammoth.js non disponibile');
+            }
+            
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({arrayBuffer});
+            return result.value;
+        }
+
+        function detectDocumentType(content) {
+            if (content.toLowerCase().includes('fattura') || content.toLowerCase().includes('invoice')) {
+                return 'invoice';
+            } else if (content.toLowerCase().includes('contratto') || content.toLowerCase().includes('contract')) {
+                return 'contract';
+            } else if (content.toLowerCase().includes('report') || content.toLowerCase().includes('relazione')) {
+                return 'report';
+            }
+            return 'document';
+        }
+
+        function extractTrainingData(content) {
+            // Simple training data extraction - in a real scenario this would be more sophisticated
+            const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+            return sentences.slice(0, 10).map(sentence => ({
+                input: "Dimmi qualcosa riguardo: " + sentence.trim().substring(0, 50) + "...",
+                output: sentence.trim()
+            }));
+        }
+
+        function displayFileItem(fileName, status, error = null) {
+            const fileList = document.getElementById('fileList');
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            
+            const statusClass = status === 'success' ? 'status-success' : 'status-error';
+            const statusText = status === 'success' ? 'Convertito' : 'Errore';
+            
+            fileItem.innerHTML = `
+                <span>${fileName}</span>
+                <span><span class="status-indicator ${statusClass}"></span> ${statusText}</span>
+            `;
+            
+            if (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = error;
+                fileItem.appendChild(errorDiv);
+            }
+            
+            fileList.appendChild(fileItem);
+        }
+
+        // Validation functionality
+        function validateData() {
+            const format = document.getElementById('formatSelect').value;
+            const input = document.getElementById('validationInput').value;
+            const resultDiv = document.getElementById('validationResult');
+            
+            if (!input.trim()) {
+                resultDiv.innerHTML = '<div class="validation-error">Inserire dati da validare</div>';
+                return;
+            }
+            
+            try {
+                let parsedData;
+                if (format === 'json') {
+                    parsedData = JSON.parse(input);
+                    resultDiv.innerHTML = `
+                        <div class="validation-success">
+                            ✅ JSON valido!
+                            <pre>${JSON.stringify(parsedData, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    parsedData = jsyaml.load(input);
+                    resultDiv.innerHTML = `
+                        <div class="validation-success">
+                            ✅ YAML valido!
+                            <pre>${JSON.stringify(parsedData, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+                validatedData = parsedData;
+                document.getElementById('trainingData').value = JSON.stringify(parsedData, null, 2);
+                updateStats();
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="validation-error">
+                        ❌ Errore di validazione: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Training functionality
+        function startTraining() {
+            const epochs = parseInt(document.getElementById('epochs').value);
+            const learningRate = parseFloat(document.getElementById('learningRate').value);
+            const trainingDataText = document.getElementById('trainingData').value;
+            
+            if (!trainingDataText.trim() && uploadedDocuments.length === 0) {
+                alert('Caricare documenti o inserire dati di training');
+                return;
+            }
+            
+            // Prepare training data
+            let allTrainingData = [];
+            if (trainingDataText.trim()) {
+                try {
+                    allTrainingData.push(JSON.parse(trainingDataText));
+                } catch (e) {
+                    alert('Errore nei dati di training');
+                    return;
+                }
+            }
+            
+            // Add uploaded documents training data
+            uploadedDocuments.forEach(doc => {
+                if (doc.convertedData && doc.convertedData.training_data) {
+                    allTrainingData = allTrainingData.concat(doc.convertedData.training_data);
+                }
+            });
+            
+            simulateTraining(epochs, learningRate, allTrainingData);
+        }
+
+        function simulateTraining(epochs, learningRate, data) {
+            const statusDiv = document.getElementById('trainingStatus');
+            const progressBar = document.getElementById('trainingProgress');
+            const progressFill = document.getElementById('trainingFill');
+            
+            statusDiv.innerHTML = '<div class="status-indicator status-info"></div> Avvio training...';
+            progressBar.classList.remove('hidden');
+            
+            let currentEpoch = 0;
+            const trainingInterval = setInterval(() => {
+                currentEpoch++;
+                const progress = (currentEpoch / epochs) * 100;
+                progressFill.style.width = progress + '%';
+                
+                statusDiv.innerHTML = `
+                    <div class="status-indicator status-info"></div> 
+                    Training in corso... Epoca ${currentEpoch}/${epochs}
+                    <br>Learning Rate: ${learningRate}
+                    <br>Samples: ${data.length}
+                `;
+                
+                if (currentEpoch >= epochs) {
+                    clearInterval(trainingInterval);
+                    statusDiv.innerHTML = `
+                        <div class="status-indicator status-success"></div> 
+                        ✅ Training completato!
+                        <br>Modello TinyLLaMA addestrato con ${data.length} samples
+                        <br>Epoche: ${epochs}, Learning Rate: ${learningRate}
+                    `;
+                    
+                    modelTrained = true;
+                    trainingData = data;
+                    updateChatStatus();
+                    updateStats();
+                    
+                    setTimeout(() => progressBar.classList.add('hidden'), 2000);
+                }
+            }, 1000);
+        }
+
+        // Chat functionality
+        function updateChatStatus() {
+            const statusIndicator = document.getElementById('chatStatus');
+            const statusText = document.getElementById('chatStatusText');
+            const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendButton');
+            
+            if (modelTrained) {
+                statusIndicator.className = 'status-indicator status-success';
+                statusText.textContent = 'Modello addestrato e pronto';
+                chatInput.disabled = false;
+                sendButton.disabled = false;
+                chatInput.placeholder = 'Chiedi informazioni sui tuoi documenti aziendali...';
+            } else {
+                statusIndicator.className = 'status-indicator status-error';
+                statusText.textContent = 'Modello non addestrato';
+                chatInput.disabled = true;
+                sendButton.disabled = true;
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessageToChat(message, 'user');
+            input.value = '';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                const response = generateAIResponse(message);
+                addMessageToChat(response, 'bot');
+            }, 1000);
+        }
+
+        function addMessageToChat(message, sender) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = message;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function generateAIResponse(userMessage) {
+            // Simple AI response simulation based on training data
+            const lowerMessage = userMessage.toLowerCase();
+            
+            if (lowerMessage.includes('fattura') || lowerMessage.includes('invoice')) {
+                return `Basandomi sui documenti caricati, posso aiutarti con le informazioni sulle fatture. Ho analizzato ${uploadedDocuments.filter(doc => doc.convertedData.type === 'invoice').length} fatture nel tuo archivio. Cosa ti serve sapere specificamente?`;
+            }
+            
+            if (lowerMessage.includes('contratto') || lowerMessage.includes('contract')) {
+                return `Ho accesso ai contratti nel tuo archivio aziendale. Posso aiutarti a trovare informazioni specifiche sui termini, scadenze o clausole. Puoi essere più specifico sulla tua richiesta?`;
+            }
+            
+            if (lowerMessage.includes('report') || lowerMessage.includes('relazione')) {
+                return `I report aziendali sono stati elaborati e sono disponibili per la consultazione. Posso fornirti riassunti, evidenziare punti chiave o rispondere a domande specifiche sui contenuti.`;
+            }
+            
+            if (lowerMessage.includes('azienda') || lowerMessage.includes('company')) {
+                return `Sto gestendo i documenti per ${currentUser.company}. Ho accesso a ${uploadedDocuments.length} documenti caricati e posso rispondere a domande specifiche sui tuoi archivi aziendali.`;
+            }
+            
+            if (lowerMessage.includes('help') || lowerMessage.includes('aiuto')) {
+                return `Sono il tuo assistente AI per la gestione documentale di ${currentUser.company}. Posso aiutarti con:
+• Ricerca informazioni nei documenti caricati
+• Analisi di fatture e contratti
+• Riassunti di report aziendali
+• Risposte su procedure e politiche aziendali
+Cosa posso fare per te?`;
+            }
+            
+            // Default response using training data
+            if (trainingData.length > 0) {
+                const randomResponse = trainingData[Math.floor(Math.random() * trainingData.length)];
+                if (randomResponse.output) {
+                    return `Basandomi sui tuoi documenti: ${randomResponse.output}`;
+                }
+            }
+            
+            return `Ho elaborato la tua richiesta "${userMessage}". Basandomi sui ${uploadedDocuments.length} documenti nel tuo archivio aziendale, posso fornirti informazioni specifiche. Puoi essere più preciso su cosa stai cercando?`;
+        }
+
+        // Statistics update
+        function updateStats() {
+            document.getElementById('documentsCount').textContent = uploadedDocuments.length;
+            document.getElementById('validatedCount').textContent = validatedData ? 1 : 0;
+            document.getElementById('trainedCount').textContent = modelTrained ? 1 : 0;
+        }
+
+        // Enter key support for chat
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-populate validation area when files are uploaded
+        function autoPopulateValidation() {
+            if (uploadedDocuments.length > 0) {
+                const lastDocument = uploadedDocuments[uploadedDocuments.length - 1];
+                document.getElementById('validationInput').value = JSON.stringify(lastDocument.convertedData, null, 2);
+            }
+        }
+
+        // Watch for new uploads to auto-populate validation
+        const originalHandleFiles = handleFiles;
+        handleFiles = async function(files) {
+            await originalHandleFiles(files);
+            autoPopulateValidation();
+        };
+
+        // Initialize chat status
+        updateChatStatus();
+
+        // Demo data button for testing
+        function loadDemoData() {
+            const demoData = {
+                "demo_invoice": {
+                    "type": "invoice",
+                    "number": "INV-2024-001",
+                    "date": "2024-01-15",
+                    "client": "Demo Client SRL",
+                    "amount": 1500.00,
+                    "items": [
+                        {"description": "Servizi di consulenza", "quantity": 10, "price": 150.00}
+                    ]
+                },
+                "training_pairs": [
+                    {
+                        "input": "Qual è il numero della fattura demo?",
+                        "output": "Il numero della fattura demo è INV-2024-001 del 15 gennaio 2024."
+                    },
+                    {
+                        "input": "Chi è il cliente della fattura?",
+                        "output": "Il cliente è Demo Client SRL per un importo di €1500.00."
+                    }
+                ]
+            };
+            
+            document.getElementById('validationInput').value = JSON.stringify(demoData, null, 2);
+            document.getElementById('trainingData').value = JSON.stringify(demoData, null, 2);
+        }
+
+        // Add demo button to validation section
+        setTimeout(() => {
+            const validationTab = document.getElementById('validationTab');
+            const demoButton = document.createElement('button');
+            demoButton.textContent = 'Carica Dati Demo';
+            demoButton.className = 'btn btn-secondary';
+            demoButton.onclick = loadDemoData;
+            validationTab.insertBefore(demoButton, document.getElementById('validationInput'));
+        }, 1000);
+    </script>
+</body>
+</html>
