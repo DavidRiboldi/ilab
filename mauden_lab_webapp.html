@@ -293,12 +293,6 @@
                     <label for="loginPassword">Password</label>
                     <input type="password" id="loginPassword" name="password" required>
                 </div>
-                <!-- Optional: Remember me checkbox 
-                <div class="form-group">
-                    <input type="checkbox" id="remember" name="remember">
-                    <label for="remember" style="display: inline; font-weight: normal;">Ricordami</label>
-                </div>
-                -->
                 <div class="error general-error-message" style="margin-top: 1rem; margin-bottom: 1rem;"></div>
                 <button type="submit" class="btn btn-primary">Accedi</button>
                 <p>Non hai un account? <a href="#" onclick="showSection('register')">Registrati qui</a></p>
@@ -352,20 +346,17 @@
 
         <!-- Main Dashboard -->
         <div id="dashboardSection" class="hidden">
-            <!-- Welcome Header -->
             <div class="card">
                 <h1>Benvenuto nel tuo Dashboard Mauden Lab</h1>
                 <p>Gestisci i tuoi documenti aziendali e addestra il tuo assistente AI personalizzato</p>
-                <div class="nav-links"> <!-- This inner nav-links might be redundant if navbar is globally updated -->
+                <div class="nav-links"> 
                     <button class="btn btn-primary" onclick="showTab('upload')">📄 Upload Documenti</button>
                     <button class="btn btn-primary" onclick="showTab('validation')">✅ Validazione</button>
                     <button class="btn btn-primary" onclick="showTab('training')">🧠 Training AI</button>
                     <button class="btn btn-primary" onclick="showTab('chat')">💬 Chatbot</button>
-                    <!-- Logout button is now in the main navbar, updated by auth.js -->
                 </div>
             </div>
 
-            <!-- Stats Cards -->
             <div class="grid">
                 <div class="card stats-card">
                     <div class="stats-number" id="documentsCount">0</div>
@@ -381,7 +372,6 @@
                 </div>
             </div>
 
-            <!-- Upload Tab -->
             <div id="uploadTab" class="card">
                 <h3>📄 Caricamento e Conversione Documenti</h3>
                 <div class="upload-area" id="uploadArea">
@@ -397,7 +387,6 @@
                 </div>
             </div>
 
-            <!-- Validation Tab -->
             <div id="validationTab" class="card hidden">
                 <h3>✅ Validazione JSON/YAML</h3>
                 <select id="formatSelect" class="form-group">
@@ -409,7 +398,6 @@
                 <div id="validationResult"></div>
             </div>
 
-            <!-- Training Tab -->
             <div id="trainingTab" class="card hidden">
                 <h3>🧠 Training Modello TinyLLaMA</h3>
                 <div class="form-group">
@@ -434,7 +422,6 @@
                 </div>
             </div>
 
-            <!-- Chat Tab -->
             <div id="chatTab" class="card hidden">
                 <h3>💬 Chatbot Aziendale</h3>
                 <div class="form-group">
@@ -454,75 +441,43 @@
     </div>
 
     <script>
-        // Global state (some parts might be managed by auth.js now or become obsolete)
-        // let currentUser = null; // Managed by auth.js through backend session
+        // Global state for frontend, some managed by auth.js or backend now
+        let uploadedDocuments = []; // Array to store info about uploaded documents from backend
+        let validatedData = null;   // For data validation tab
+        let modelTrained = false;   // For training and chat tabs
+        // let trainingData = []; // This was used in simulation, real training data comes from backend/files
 
-        let uploadedDocuments = []; // This and below state will be managed by respective feature's JS
-        let validatedData = null;
-        let modelTrained = false;
-        // let trainingData = []; // This seems to be populated by the training simulation
-
-        // Initialize PDF.js
+        // Initialize PDF.js (if still needed for any client-side PDF inspection, otherwise can be removed)
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
-        // Navigation functions (showSection is now in auth.js, ensure it's globally accessible or auth.js handles all section showing)
-        // function showSection(section) { ... } // Now in auth.js
+        // showSection is in auth.js
+        // showTab is below, unchanged
 
         function showTab(tab) {
             document.querySelectorAll('#uploadTab, #validationTab, #trainingTab, #chatTab').forEach(el => {
                 el.classList.add('hidden');
             });
-            document.getElementById(tab + 'Tab').classList.remove('hidden');
+            const tabElement = document.getElementById(tab + 'Tab');
+            if (tabElement) {
+                tabElement.classList.remove('hidden');
+            }
         }
 
-        // Authentication related functions are now expected to be in auth.js
-        // function validateEmail(email) { ... } // Commented out: Backend validation preferred
-        // function validatePassword(password) { ... } // Commented out: Backend validation preferred
-
+        // Authentication related functions (validateEmail, validatePassword, old listeners, showDashboard, updateNavbar, logout)
+        // are COMMENTED OUT as they are handled by auth.js or backend.
         /*
-        // COMMENTED OUT: registerForm listener is now in auth.js
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // ... original complex logic ...
-        });
+        function validateEmail(email) { ... }
+        function validatePassword(password) { ... }
+        document.getElementById('registerForm').addEventListener('submit', function(e) { ... });
+        document.getElementById('loginForm').addEventListener('submit', function(e) { ... });
+        function showDashboard() { ... }
+        function updateNavbar() { ... }
+        function logout() { ... }
         */
 
-        /*
-        // COMMENTED OUT: loginForm listener is now in auth.js
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // ... original complex logic ...
-        });
-        */
-
-        /*
-        // COMMENTED OUT: showDashboard is now handled by showDashboardWithUser in auth.js for auth parts
-        function showDashboard() {
-            // showSection('dashboard'); // Handled by auth.js
-            // updateNavbar(); // Handled by auth.js
-            showTab('upload');
-            updateStats();
-        }
-        */
-
-        /*
-        // COMMENTED OUT: updateNavbar is now in auth.js
-        function updateNavbar() {
-            // ... original logic ...
-        }
-        */
-
-        /*
-        // COMMENTED OUT: logout is now in auth.js
-        function logout() {
-            // ... original logic ...
-        }
-        */
-
-
-        // File upload functionality (Keep this, it's not related to auth)
+        // File upload functionality
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
 
@@ -538,136 +493,104 @@
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadArea.classList.remove('dragover');
-                handleFiles(e.dataTransfer.files);
+                if (e.dataTransfer.files.length > 0) { // Check if files were dropped
+                    handleFiles(e.dataTransfer.files);
+                }
             });
         }
         if (fileInput) {
             fileInput.addEventListener('change', (e) => {
-                handleFiles(e.target.files);
+                if (e.target.files.length > 0) { // Check if files were selected
+                     handleFiles(e.target.files);
+                }
             });
         }
         
-
+        // MODIFIED handleFiles to send data to backend
         async function handleFiles(files) {
             const progressBar = document.getElementById('progressBar');
             const progressFill = document.getElementById('progressFill');
-            
+            // const fileListUI = document.getElementById('fileList'); // Not directly used in this version
+
+            if (!progressBar || !progressFill) {
+                console.error("Progress bar elements not found");
+                return;
+            }
+
             progressBar.classList.remove('hidden');
-            
+            progressFill.style.width = '0%';
+
+            let successfullyUploadedCount = 0;
+
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/files/upload', {
+                        method: 'POST',
+                        body: formData,
+                        // Content-Type is set by browser for FormData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.status === 'success') {
+                        uploadedDocuments.push({ 
+                            name: result.filename, 
+                            id: result.document_id, 
+                            convertedData: result.data 
+                        });
+                        displayFileItem(result.filename, 'success');
+                        successfullyUploadedCount++;
+                        
+                        if (successfullyUploadedCount === 1 && result.data) {
+                             const validationInputElement = document.getElementById('validationInput');
+                             if(validationInputElement) {
+                                validationInputElement.value = JSON.stringify(result.data, null, 2);
+                             }
+                             const trainingDataElement = document.getElementById('trainingData');
+                             if(trainingDataElement) { // Also populate training data area
+                                trainingDataElement.value = JSON.stringify(result.data, null, 2);
+                             }
+                        }
+                    } else {
+                        displayFileItem(file.name, 'error', result.message || 'Upload failed');
+                    }
+                } catch (error) {
+                    console.error('Error uploading file:', file.name, error);
+                    displayFileItem(file.name, 'error', 'Network error or server issue during upload.');
+                }
+                
                 const progress = ((i + 1) / files.length) * 100;
                 progressFill.style.width = progress + '%';
-                
-                try {
-                    // Original conversion logic relied on 'currentUser' which is now not set here.
-                    // For now, we'll pass a placeholder. This needs to be addressed when file upload backend is built.
-                    const tempUserData = { company: 'UnknownCompany' }; // Placeholder
-                    const convertedData = await convertFileToJSON(file, tempUserData); 
-                    uploadedDocuments.push({
-                        name: file.name,
-                        originalFile: file,
-                        convertedData: convertedData,
-                        timestamp: new Date().toISOString()
-                    });
-                    
-                    displayFileItem(file.name, 'success');
-                } catch (error) {
-                    console.error("Error handling file:", file.name, error);
-                    displayFileItem(file.name, 'error', error.message);
-                }
             }
             
-            updateStats(); // Ensure this function doesn't rely on the old currentUser
-            setTimeout(() => progressBar.classList.add('hidden'), 1000);
+            updateStats(); 
+            setTimeout(() => {
+                progressBar.classList.add('hidden');
+                progressFill.style.width = '0%';
+            }, 1500); // Slightly longer timeout
         }
 
-        // Modified to accept a user object, as original 'currentUser' is no longer reliable here
-        async function convertFileToJSON(file, user) { 
-            const fileType = file.type;
-            let content = '';
-            
-            if (fileType === 'application/pdf') {
-                content = await extractPDFText(file);
-            } else if (fileType.includes('word') || file.name.endsWith('.docx')) {
-                content = await extractWordText(file);
-            } else if (fileType === 'text/plain') {
-                content = await file.text();
-            } else {
-                throw new Error('Formato file non supportato');
-            }
-            
-            const jsonData = {
-                source: file.name,
-                type: detectDocumentType(content),
-                content: content,
-                processed_date: new Date().toISOString(),
-                metadata: {
-                    file_size: file.size,
-                    file_type: fileType,
-                    company: user?.company || 'Unknown' // Use passed user object
-                },
-                training_data: extractTrainingData(content)
-            };
-            
-            return jsonData;
-        }
-
-        async function extractPDFText(file) {
-            if (typeof pdfjsLib === 'undefined') {
-                throw new Error('PDF.js non disponibile');
-            }
-            
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-            let fullText = '';
-            
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + ' ';
-            }
-            
-            return fullText.trim();
-        }
-
-        async function extractWordText(file) {
-            if (typeof mammoth === 'undefined') {
-                throw new Error('Mammoth.js non disponibile');
-            }
-            
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({arrayBuffer});
-            return result.value;
-        }
-
-        function detectDocumentType(content) {
-            if (content.toLowerCase().includes('fattura') || content.toLowerCase().includes('invoice')) {
-                return 'invoice';
-            } else if (content.toLowerCase().includes('contratto') || content.toLowerCase().includes('contract')) {
-                return 'contract';
-            } else if (content.toLowerCase().includes('report') || content.toLowerCase().includes('relazione')) {
-                return 'report';
-            }
-            return 'document';
-        }
-
-        function extractTrainingData(content) {
-            const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
-            return sentences.slice(0, 10).map(sentence => ({
-                input: "Dimmi qualcosa riguardo: " + sentence.trim().substring(0, 50) + "...",
-                output: sentence.trim()
-            }));
-        }
+        /*
+        // COMMENTED OUT: Client-side conversion functions are superseded by backend processing
+        async function convertFileToJSON(file, user) { ... }
+        async function extractPDFText(file) { ... }
+        async function extractWordText(file) { ... }
+        function detectDocumentType(content) { ... }
+        function extractTrainingData(content) { ... }
+        */
 
         function displayFileItem(fileName, status, error = null) {
             const fileList = document.getElementById('fileList');
+            if (!fileList) return;
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
             
             const statusClass = status === 'success' ? 'status-success' : 'status-error';
-            const statusText = status === 'success' ? 'Convertito' : 'Errore';
+            const statusText = status === 'success' ? 'Convertito e Caricato' : 'Errore Caricamento';
             
             fileItem.innerHTML = `
                 <span>${fileName}</span>
@@ -676,7 +599,8 @@
             
             if (error) {
                 const errorDiv = document.createElement('div');
-                errorDiv.className = 'error';
+                errorDiv.className = 'error'; // class 'error' for styling
+                errorDiv.style.marginLeft = "10px"; // Add some space
                 errorDiv.textContent = error;
                 fileItem.appendChild(errorDiv);
             }
@@ -684,7 +608,7 @@
             fileList.appendChild(fileItem);
         }
 
-        // Validation functionality (Keep)
+        // Validation functionality (remains client-side for now, using data from backend or pasted)
         function validateData() {
             const format = document.getElementById('formatSelect').value;
             const input = document.getElementById('validationInput').value;
@@ -699,72 +623,87 @@
                 let parsedData;
                 if (format === 'json') {
                     parsedData = JSON.parse(input);
-                    resultDiv.innerHTML = `
-                        <div class="validation-success">
-                            ✅ JSON valido!
-                            <pre>${JSON.stringify(parsedData, null, 2)}</pre>
-                        </div>
-                    `;
-                } else {
-                    parsedData = jsyaml.load(input); // Ensure jsyaml.min.js is loaded
-                    resultDiv.innerHTML = `
-                        <div class="validation-success">
-                            ✅ YAML valido!
-                            <pre>${JSON.stringify(parsedData, null, 2)}</pre>
-                        </div>
-                    `;
+                } else { // yaml
+                    if (typeof jsyaml === 'undefined') {
+                        resultDiv.innerHTML = '<div class="validation-error">Libreria YAML non caricata.</div>';
+                        return;
+                    }
+                    parsedData = jsyaml.load(input);
                 }
-                
-                validatedData = parsedData; // This global var might need to be managed carefully
-                document.getElementById('trainingData').value = JSON.stringify(parsedData, null, 2);
-                updateStats(); // Ensure this function doesn't rely on the old currentUser
-                
+                // Display validated data prettily
+                resultDiv.innerHTML = `
+                    <div class="validation-success">
+                        ✅ ${format.toUpperCase()} valido!
+                        <pre>${JSON.stringify(parsedData, null, 2)}</pre>
+                    </div>
+                `;
+                validatedData = parsedData; // Store validated data globally
+                // Optionally, update training data field if validation is successful
+                const trainingDataElement = document.getElementById('trainingData');
+                if (trainingDataElement) {
+                    trainingDataElement.value = JSON.stringify(parsedData, null, 2);
+                }
+                updateStats();
             } catch (error) {
                 resultDiv.innerHTML = `
                     <div class="validation-error">
-                        ❌ Errore di validazione: ${error.message}
+                        ❌ Errore di validazione ${format.toUpperCase()}: ${error.message}
+                        <pre>${input.substring(0, Math.min(input.length, 500))}</pre>
                     </div>
                 `;
+                validatedData = null;
             }
         }
 
-        // Training functionality (Keep)
+        // Training functionality (simulation, remains client-side for now)
         function startTraining() {
             const epochs = parseInt(document.getElementById('epochs').value);
             const learningRate = parseFloat(document.getElementById('learningRate').value);
             const trainingDataText = document.getElementById('trainingData').value;
             
-            if (!trainingDataText.trim() && uploadedDocuments.length === 0) {
-                alert('Caricare documenti o inserire dati di training');
+            if (!trainingDataText.trim()) {
+                alert('Inserire dati di training validati (JSON/YAML).');
                 return;
             }
             
-            let allTrainingData = []; // Renamed from 'trainingData' to avoid conflict with global
-            if (trainingDataText.trim()) {
-                try {
-                    allTrainingData.push(JSON.parse(trainingDataText));
-                } catch (e) {
-                    alert('Errore nei dati di training');
-                    return;
-                }
+            let dataForTraining;
+            try {
+                dataForTraining = JSON.parse(trainingDataText); // Expects JSON for simulation
+            } catch (e) {
+                alert('Errore nel parsing dei dati di training. Assicurarsi sia JSON valido.');
+                return;
             }
             
-            uploadedDocuments.forEach(doc => {
-                if (doc.convertedData && doc.convertedData.training_data) {
-                    allTrainingData = allTrainingData.concat(doc.convertedData.training_data);
-                }
-            });
-            
-            simulateTraining(epochs, learningRate, allTrainingData);
+            // If dataForTraining is an array of items, and each item has 'training_data'
+            // let actualTrainingSamples = [];
+            // if (Array.isArray(dataForTraining)) {
+            //    dataForTraining.forEach(item => {
+            //        if(item && item.training_data && Array.isArray(item.training_data)) {
+            //            actualTrainingSamples = actualTrainingSamples.concat(item.training_data);
+            //        } else {
+            //            actualTrainingSamples.push(item); // Assume item itself is a sample if no training_data field
+            //        }
+            //    });
+            // } else if (dataForTraining && dataForTraining.training_data && Array.isArray(dataForTraining.training_data)){
+            //     actualTrainingSamples = dataForTraining.training_data;
+            // } else {
+            //    actualTrainingSamples.push(dataForTraining); // Single object as sample
+            // }
+            // For now, assume trainingDataText is a direct list of training pairs or a compatible structure.
+
+            simulateTraining(epochs, learningRate, dataForTraining); // Pass the parsed data
         }
 
-        function simulateTraining(epochs, learningRate, dataForTraining) { // Renamed 'data'
+        function simulateTraining(epochs, learningRate, data) { // data is expected to be the actual training data
             const statusDiv = document.getElementById('trainingStatus');
             const progressBar = document.getElementById('trainingProgress');
             const progressFill = document.getElementById('trainingFill');
+
+            if(!statusDiv || !progressBar || !progressFill) return;
             
             statusDiv.innerHTML = '<div class="status-indicator status-info"></div> Avvio training...';
             progressBar.classList.remove('hidden');
+            progressFill.style.width = '0%';
             
             let currentEpoch = 0;
             const trainingInterval = setInterval(() => {
@@ -776,41 +715,39 @@
                     <div class="status-indicator status-info"></div> 
                     Training in corso... Epoca ${currentEpoch}/${epochs}
                     <br>Learning Rate: ${learningRate}
-                    <br>Samples: ${dataForTraining.length}
+                    <br>Samples: ${Array.isArray(data) ? data.length : (data.training_data ? data.training_data.length : 1)}
                 `;
                 
                 if (currentEpoch >= epochs) {
                     clearInterval(trainingInterval);
                     statusDiv.innerHTML = `
                         <div class="status-indicator status-success"></div> 
-                        ✅ Training completato!
-                        <br>Modello TinyLLaMA addestrato con ${dataForTraining.length} samples
-                        <br>Epoche: ${epochs}, Learning Rate: ${learningRate}
+                        ✅ Training completato! (Simulazione)
                     `;
-                    
-                    modelTrained = true; // This global var might need careful management
-                    // window.trainingData = dataForTraining; // Assign to global if needed by chat
+                    modelTrained = true; 
+                    // window.trainingData = data; // Store globally if chat simulation needs it
                     updateChatStatus();
-                    updateStats(); // Ensure this function doesn't rely on the old currentUser
-                    
+                    updateStats();
                     setTimeout(() => progressBar.classList.add('hidden'), 2000);
                 }
             }, 1000);
         }
 
-        // Chat functionality (Keep, but AI response might need real backend)
+        // Chat functionality (simulation, remains client-side for now)
         function updateChatStatus() {
             const statusIndicator = document.getElementById('chatStatus');
             const statusText = document.getElementById('chatStatusText');
             const chatInput = document.getElementById('chatInput');
             const sendButton = document.getElementById('sendButton');
+
+            if(!statusIndicator || !statusText || !chatInput || !sendButton) return;
             
-            if (modelTrained) { // Relies on global 'modelTrained'
+            if (modelTrained) {
                 statusIndicator.className = 'status-indicator status-success';
-                statusText.textContent = 'Modello addestrato e pronto';
+                statusText.textContent = 'Modello addestrato e pronto (Simulato)';
                 chatInput.disabled = false;
                 sendButton.disabled = false;
-                chatInput.placeholder = 'Chiedi informazioni sui tuoi documenti aziendali...';
+                chatInput.placeholder = 'Chiedi informazioni sui tuoi documenti (Simulato)...';
             } else {
                 statusIndicator.className = 'status-indicator status-error';
                 statusText.textContent = 'Modello non addestrato';
@@ -821,68 +758,48 @@
 
         function sendMessage() {
             const input = document.getElementById('chatInput');
+            if(!input) return;
             const message = input.value.trim();
-            
             if (!message) return;
-            
             addMessageToChat(message, 'user');
             input.value = '';
-            
-            // Simulate AI response (This will eventually call the real backend)
             setTimeout(() => {
-                const response = generateAIResponse(message);
+                const response = generateAIResponse(message); // Simulation
                 addMessageToChat(response, 'bot');
             }, 1000);
         }
 
         function addMessageToChat(message, sender) {
             const chatContainer = document.getElementById('chatContainer');
+            if(!chatContainer) return;
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}`;
             messageDiv.textContent = message;
-            
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function generateAIResponse(userMessage) {
-            // This simulation will be replaced by a backend call.
-            // It currently relies on global 'uploadedDocuments' and potentially 'trainingData' (if used)
-            // and the old 'currentUser' for company name.
+        function generateAIResponse(userMessage) { // Simulation
             const lowerMessage = userMessage.toLowerCase();
-            let companyName = "La tua azienda"; // Default if user info not available
-            // Try to get company name if an auth system was in place and provided it
-            // This part needs to be re-evaluated once auth gives user data to the main script if needed.
-
             if (lowerMessage.includes('fattura') || lowerMessage.includes('invoice')) {
-                return `Basandomi sui documenti caricati, posso aiutarti con le informazioni sulle fatture. Ho analizzato ${uploadedDocuments.filter(doc => doc.convertedData.type === 'invoice').length} fatture nel tuo archivio. Cosa ti serve sapere specificamente?`;
+                return `Simulazione: Ho trovato ${uploadedDocuments.filter(doc => doc.convertedData && doc.convertedData.type === 'invoice').length} fatture.`;
             }
-            // ... (other simulated responses) ...
-             if (lowerMessage.includes('azienda') || lowerMessage.includes('company')) {
-                // The 'currentUser.company' will not work as 'currentUser' is removed.
-                // This needs to be updated if company info is available from auth.js context or backend.
-                return `Sto gestendo i documenti per ${companyName}. Ho accesso a ${uploadedDocuments.length} documenti caricati e posso rispondere a domande specifiche sui tuoi archivi aziendali.`;
-            }
-            
-            // Attempt to use window.trainingData if set by simulation
-            // if (window.trainingData && window.trainingData.length > 0) {
-            //     const randomResponse = window.trainingData[Math.floor(Math.random() * window.trainingData.length)];
-            //     if (randomResponse.output) {
-            //         return `Basandomi sui tuoi documenti: ${randomResponse.output}`;
-            //     }
-            // }
-            
-            return `Ho elaborato la tua richiesta "${userMessage}". Basandomi sui ${uploadedDocuments.length} documenti nel tuo archivio aziendale, posso fornirti informazioni specifiche. Puoi essere più preciso su cosa stai cercando?`;
+            // Add more simulated responses as needed
+            return `Simulazione: Non ho una risposta specifica per "${userMessage}". Prova a chiedere qualcos'altro.`;
         }
 
-        // Statistics update (Keep, ensure it doesn't rely on old currentUser)
+        // Statistics update
         function updateStats() {
-            document.getElementById('documentsCount').textContent = uploadedDocuments.length;
-            document.getElementById('validatedCount').textContent = validatedData ? 1 : 0; // Global 'validatedData'
-            document.getElementById('trainedCount').textContent = modelTrained ? 1 : 0; // Global 'modelTrained'
+            const documentsCountEl = document.getElementById('documentsCount');
+            const validatedCountEl = document.getElementById('validatedCount');
+            const trainedCountEl = document.getElementById('trainedCount');
+
+            if(documentsCountEl) documentsCountEl.textContent = uploadedDocuments.length;
+            if(validatedCountEl) validatedCountEl.textContent = validatedData ? 1 : 0;
+            if(trainedCountEl) trainedCountEl.textContent = modelTrained ? 1 : 0;
         }
 
-        // Enter key support for chat (Keep)
+        // Enter key support for chat
         const chatInputElement = document.getElementById('chatInput');
         if (chatInputElement) {
             chatInputElement.addEventListener('keypress', function(e) {
@@ -893,59 +810,49 @@
             });
         }
 
-        // Auto-populate validation area when files are uploaded (Keep)
+        /* 
+        // COMMENTED OUT: autoPopulateValidation and its related window.handleFiles = ...
+        // The new handleFiles function now directly populates the validation input.
         function autoPopulateValidation() {
-            if (uploadedDocuments.length > 0) {
-                const lastDocument = uploadedDocuments[uploadedDocuments.length - 1];
-                document.getElementById('validationInput').value = JSON.stringify(lastDocument.convertedData, null, 2);
-            }
+            // ... original logic ...
         }
-
-        // Watch for new uploads to auto-populate validation (Keep)
-        // Re-assign handleFiles to include autoPopulateValidation call
-        const originalHandleFiles = window.handleFiles; // Assuming handleFiles is global
+        const originalHandleFiles = window.handleFiles; 
         window.handleFiles = async function(files) {
-            if(typeof originalHandleFiles === 'function') {
-                await originalHandleFiles(files, { company: 'UnknownCompany' }); // Pass placeholder user
-            }
-            autoPopulateValidation();
+            // ... original logic ...
         };
+        */
 
-        // Initialize chat status (Keep)
+        // Initialize chat status and stats on load
         updateChatStatus();
+        updateStats();
 
-        // Demo data button for testing (Keep)
+        // Demo data button for testing
         function loadDemoData() {
-            const demoData = {
-                "demo_invoice": { /* ... demo data ... */ },
-                "training_pairs": [ /* ... demo data ... */ ]
-            };
-            
-            document.getElementById('validationInput').value = JSON.stringify(demoData, null, 2);
-            document.getElementById('trainingData').value = JSON.stringify(demoData, null, 2);
+            const demoData = { /* ... your demo data structure ... */ };
+            const validationInputElement = document.getElementById('validationInput');
+            const trainingDataElement = document.getElementById('trainingData');
+            if (validationInputElement) validationInputElement.value = JSON.stringify(demoData, null, 2);
+            if (trainingDataElement) trainingDataElement.value = JSON.stringify(demoData, null, 2);
         }
 
-        // Add demo button to validation section (Keep)
-        // Note: This might run before auth.js fully initializes and shows the dashboard.
-        // Consider moving this to be called after dashboard is shown if issues arise.
         setTimeout(() => {
             const validationTab = document.getElementById('validationTab');
-            // Check if validationTab is visible before adding button
-            if (validationTab && validationTab.offsetParent !== null) { 
+            if (validationTab && validationTab.offsetParent !== null) {
                 const demoButton = document.createElement('button');
                 demoButton.textContent = 'Carica Dati Demo';
                 demoButton.className = 'btn btn-secondary';
-                demoButton.style.marginTop = '1rem'; // Add some spacing
+                demoButton.style.marginTop = '1rem';
                 demoButton.onclick = loadDemoData;
-                
                 const validationInputTextarea = document.getElementById('validationInput');
-                if (validationInputTextarea) {
-                     validationTab.insertBefore(demoButton, validationInputTextarea.nextSibling); // Insert after textarea
+                if (validationInputTextarea && validationInputTextarea.nextSibling) {
+                     validationTab.insertBefore(demoButton, validationInputTextarea.nextSibling);
+                } else if (validationInputTextarea) {
+                     validationTab.appendChild(demoButton); // Fallback if no sibling
                 }
             }
-        }, 1500); // Increased timeout slightly
+        }, 1500);
 
     </script>
-    <script src="/static/js/auth.js"></script> <!-- Ensure this is the VERY LAST script -->
+    <script src="/static/js/auth.js"></script> 
 </body>
 </html>
