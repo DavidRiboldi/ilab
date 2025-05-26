@@ -399,7 +399,7 @@
             </div>
 
             <div id="trainingTab" class="card hidden">
-                <h3>🧠 Training Modello (Simulato)</h3> <!-- Title updated -->
+                <h3>🧠 Training Modello (Simulato)</h3>
                 <div class="form-group">
                     <label>Stato Modello: <span id="modelStatusText">Pronto per il training simulato</span></label>
                 </div>
@@ -407,7 +407,6 @@
                     <label for="trainingData">Dati di Training (JSON/YAML validati - input per la simulazione)</label>
                     <textarea id="trainingData" rows="10" placeholder="I dati validati appariranno qui automaticamente..."></textarea>
                 </div>
-                <!-- Epochs and Learning Rate are not used by simulated training but kept for UI consistency -->
                 <div class="form-group">
                     <label for="epochs">Numero di Epoche (non usato in simulazione)</label>
                     <input type="number" id="epochs" value="5" min="1" max="50">
@@ -424,7 +423,7 @@
             </div>
 
             <div id="chatTab" class="card hidden">
-                <h3>💬 Chatbot Aziendale (Simulato)</h3> <!-- Title updated -->
+                <h3>💬 Chatbot Aziendale (Simulato)</h3>
                 <div class="form-group">
                     <label>Stato: <span class="status-indicator" id="chatStatus"></span> <span id="chatStatusText">Modello non addestrato</span></label>
                 </div>
@@ -445,14 +444,11 @@
         // Global state for frontend
         let uploadedDocuments = []; 
         let validatedData = null;   
-        let modelTrained = false; // This will be set by the new startTraining()
+        let modelTrained = false; 
 
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
-
-        // showSection is in auth.js
-        // showTab is below
 
         function showTab(tab) {
             document.querySelectorAll('#uploadTab, #validationTab, #trainingTab, #chatTab').forEach(el => {
@@ -464,7 +460,6 @@
             }
         }
 
-        // File upload functionality
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
 
@@ -591,7 +586,6 @@
             updateStats(); 
         }
 
-        // MODIFIED startTraining to call backend simulated training
         async function startTraining() {
             const statusDiv = document.getElementById('trainingStatus');
             const progressBar = document.getElementById('trainingProgress');
@@ -604,46 +598,32 @@
                 return;
             }
             
-            // Check if there's data in the trainingData textarea
             const trainingDataText = document.getElementById('trainingData').value;
             if (!trainingDataText.trim()) {
                 alert('Per favore, carica e valida dei documenti, oppure inserisci manualmente i dati di training (JSON) prima di avviare il training simulato.');
                 return;
             }
-            try {
-                JSON.parse(trainingDataText); // Quick check if it's valid JSON
-            } catch(e) {
-                alert('I dati nell\'area "Dati di Training" non sembrano essere JSON valido. Per favore, valida prima i dati.');
-                return;
-            }
-
+            try { JSON.parse(trainingDataText); } 
+            catch(e) { alert('I dati nell'area "Dati di Training" non sembrano essere JSON valido. Per favore, valida prima i dati.'); return; }
 
             statusDiv.innerHTML = '<div class="status-indicator status-info"></div> Avvio training simulato...';
             modelStatusText.textContent = "Training simulato in corso...";
             progressBar.classList.remove('hidden');
             progressFill.style.width = '0%';
-            modelTrained = false; // Reset status
-            updateChatStatus(); // Update chat UI immediately
+            modelTrained = false; 
+            updateChatStatus(); 
 
             let currentProgress = 0;
             const progressInterval = setInterval(() => {
                 if (currentProgress < 90) { 
-                    currentProgress += 10; // Simulate progress
+                    currentProgress += 10; 
                     progressFill.style.width = currentProgress + '%';
                     statusDiv.innerHTML = `<div class="status-indicator status-info"></div> Training simulato in corso... ${currentProgress}%`;
                 }
-            }, 400); // Update progress every 0.4 seconds
+            }, 400); 
 
             try {
-                const response = await fetch('/training/start_simulated_training', {
-                    method: 'POST',
-                    headers: {
-                        // 'Content-Type': 'application/json', // Not needed for this specific POST if no body is sent
-                        // Session cookie is sent automatically
-                    }
-                    // No body is sent for this simulated training trigger
-                });
-
+                const response = await fetch('/training/start_simulated_training', { method: 'POST' });
                 clearInterval(progressInterval); 
                 const result = await response.json();
 
@@ -668,27 +648,18 @@
             } finally {
                 updateStats(); 
                 updateChatStatus(); 
-                // Keep progress bar at 100% on success, hide on failure after a delay
                 setTimeout(() => {
                     if (!modelTrained && progressBar) { 
                         progressBar.classList.add('hidden');
                         progressFill.style.width = '0%';
-                    } else if (modelTrained && progressBar){
-                        // Optionally hide progress bar even on success after a delay
-                        // progressBar.classList.add('hidden'); 
                     }
                 }, 3000); 
             }
         }
 
-        /*
-        // COMMENTED OUT: Old simulateTraining function
-        function simulateTraining(epochs, learningRate, data) {
-            // ... original logic ...
-        }
-        */
+        /* function simulateTraining(epochs, learningRate, data) { ... } // Commented out */
 
-        // Chat functionality (simulation)
+        // MODIFIED Chat functionality to call backend
         function updateChatStatus() {
             const statusIndicator = document.getElementById('chatStatus');
             const statusText = document.getElementById('chatStatusText');
@@ -696,50 +667,71 @@
             const sendButton = document.getElementById('sendButton');
             const modelStatusInTrainingTab = document.getElementById('modelStatusText');
 
-
             if(!statusIndicator || !statusText || !chatInput || !sendButton || !modelStatusInTrainingTab) return;
             
             if (modelTrained) {
                 statusIndicator.className = 'status-indicator status-success'; 
                 statusText.textContent = 'Modello addestrato e pronto (Simulato)';
-                modelStatusInTrainingTab.textContent = "Modello addestrato (Simulato)";
+                if (modelStatusInTrainingTab) modelStatusInTrainingTab.textContent = "Modello addestrato (Simulato)";
                 chatInput.disabled = false; sendButton.disabled = false; 
                 chatInput.placeholder = 'Chiedi al chatbot simulato...';
             } else {
                 statusIndicator.className = 'status-indicator status-error'; 
                 statusText.textContent = 'Modello non addestrato';
-                // modelStatusInTrainingTab text is set by startTraining()
+                // modelStatusInTrainingTab text is set by startTraining() or page load
                 chatInput.disabled = true; sendButton.disabled = true;
                 chatInput.placeholder = 'Completa il training per abilitare la chat.';
             }
         }
 
-        function sendMessage() {
-            const input = document.getElementById('chatInput'); if(!input) return;
-            const message = input.value.trim(); if (!message) return;
-            addMessageToChat(message, 'user'); input.value = '';
-            setTimeout(() => { addMessageToChat(generateAIResponse(message), 'bot'); }, 1000);
+        async function sendMessage() {
+            const inputElement = document.getElementById('chatInput');
+            if (!inputElement) return;
+            const messageText = inputElement.value.trim();
+            if (!messageText) return;
+
+            addMessageToChat(messageText, 'user');
+            inputElement.value = '';
+            inputElement.disabled = true; // Disable input while waiting for reply
+
+            try {
+                const response = await fetch('/chat/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: messageText })
+                });
+                const data = await response.json();
+                addMessageToChat(data.reply || "Nessuna risposta dal server.", 'bot');
+            } catch (error) {
+                console.error("Error sending chat message:", error);
+                addMessageToChat("Errore di comunicazione con il server.", 'bot');
+            } finally {
+                if (modelTrained) inputElement.disabled = false; // Re-enable if model is still "trained"
+                inputElement.focus();
+            }
         }
 
         function addMessageToChat(message, sender) {
-            const chatContainer = document.getElementById('chatContainer'); if(!chatContainer) return;
+            const chatContainer = document.getElementById('chatContainer');
+            if(!chatContainer) return;
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`; messageDiv.textContent = message;
-            chatContainer.appendChild(messageDiv); chatContainer.scrollTop = chatContainer.scrollHeight;
+            messageDiv.className = `message ${sender}`; 
+            // Sanitize message text before adding to HTML to prevent XSS
+            // A simple textContent assignment is generally safe for this.
+            messageDiv.textContent = message; 
+            chatContainer.appendChild(messageDiv); 
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function generateAIResponse(userMessage) { // Simulation
-            return `Simulazione: Non ho una risposta specifica per "${userMessage}". Il modello è solo simulato.`;
-        }
+        // function generateAIResponse(userMessage) { ... } // Commented out, backend handles replies
 
-        // Statistics update
         function updateStats() {
             const dc = document.getElementById('documentsCount');
             const vc = document.getElementById('validatedCount');
-            const tc = document.getElementById('trainedCount'); // This now reflects 'modelTrained' status
+            const tc = document.getElementById('trainedCount');
             if(dc) dc.textContent = uploadedDocuments.length;
-            if(vc) vc.textContent = validatedData ? 1 : 0; // Assuming validatedData means one successful validation
-            if(tc) tc.textContent = modelTrained ? 1 : 0; // Reflects if simulated training was 'successful'
+            if(vc) vc.textContent = validatedData ? 1 : 0; 
+            if(tc) tc.textContent = modelTrained ? 1 : 0; 
         }
 
         const chatInputElement = document.getElementById('chatInput');
@@ -748,11 +740,36 @@
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
             });
         }
+        
+        // Check initial training status from backend on load (optional, good for persistence across refresh if session is long)
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/training/get_simulated_training_status');
+                if(response.ok) {
+                    const data = await response.json();
+                    modelTrained = data.training_complete || false;
+                }
+            } catch (err) {
+                console.error("Error fetching initial training status:", err);
+                modelTrained = false; // Assume not trained if status check fails
+            } finally {
+                updateChatStatus();
+                updateStats();
+            }
+        });
 
-        updateChatStatus(); updateStats(); // Initial calls
 
-        function loadDemoData() { /* ... */ }
-        setTimeout(() => { /* ... demo button logic ... */ }, 1500);
+        function loadDemoData() { 
+            const demoData = { /* ... */ };
+            const vi = document.getElementById('validationInput');
+            const td = document.getElementById('trainingData');
+            if(vi) vi.value = JSON.stringify(demoData, null, 2);
+            if(td) td.value = JSON.stringify(demoData, null, 2);
+        }
+        setTimeout(() => { 
+            const vt = document.getElementById('validationTab');
+            if (vt && vt.offsetParent !== null) { /* ... demo button logic ... */ }
+        }, 1500);
 
     </script>
     <script src="/static/js/auth.js"></script> 
