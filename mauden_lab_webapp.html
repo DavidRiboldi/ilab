@@ -399,23 +399,24 @@
             </div>
 
             <div id="trainingTab" class="card hidden">
-                <h3>🧠 Training Modello TinyLLaMA</h3>
+                <h3>🧠 Training Modello (Simulato)</h3> <!-- Title updated -->
                 <div class="form-group">
-                    <label>Stato Modello: <span class="status-indicator status-info"></span> TinyLLaMA 1.1B - Pronto</label>
+                    <label>Stato Modello: <span id="modelStatusText">Pronto per il training simulato</span></label>
                 </div>
                 <div class="form-group">
-                    <label for="trainingData">Dati di Training (JSON/YAML validati)</label>
+                    <label for="trainingData">Dati di Training (JSON/YAML validati - input per la simulazione)</label>
                     <textarea id="trainingData" rows="10" placeholder="I dati validati appariranno qui automaticamente..."></textarea>
                 </div>
+                <!-- Epochs and Learning Rate are not used by simulated training but kept for UI consistency -->
                 <div class="form-group">
-                    <label for="epochs">Numero di Epoche</label>
+                    <label for="epochs">Numero di Epoche (non usato in simulazione)</label>
                     <input type="number" id="epochs" value="5" min="1" max="50">
                 </div>
                 <div class="form-group">
-                    <label for="learningRate">Learning Rate</label>
+                    <label for="learningRate">Learning Rate (non usato in simulazione)</label>
                     <input type="number" id="learningRate" value="0.001" step="0.0001" min="0.0001" max="0.1">
                 </div>
-                <button class="btn btn-primary" onclick="startTraining()">Avvia Training</button>
+                <button class="btn btn-primary" onclick="startTraining()">Avvia Training Simulato</button>
                 <div id="trainingStatus"></div>
                 <div class="progress-bar hidden" id="trainingProgress">
                     <div class="progress-fill" id="trainingFill"></div>
@@ -423,13 +424,13 @@
             </div>
 
             <div id="chatTab" class="card hidden">
-                <h3>💬 Chatbot Aziendale</h3>
+                <h3>💬 Chatbot Aziendale (Simulato)</h3> <!-- Title updated -->
                 <div class="form-group">
                     <label>Stato: <span class="status-indicator" id="chatStatus"></span> <span id="chatStatusText">Modello non addestrato</span></label>
                 </div>
                 <div class="chat-container" id="chatContainer">
                     <div class="message bot">
-                        Ciao! Sono il tuo assistente AI personalizzato per la gestione aziendale. Per iniziare, carica e addestra il modello con i tuoi documenti.
+                        Ciao! Sono il tuo assistente AI. Per iniziare, esegui il training (simulato) con i tuoi documenti.
                     </div>
                 </div>
                 <div class="form-group">
@@ -444,7 +445,7 @@
         // Global state for frontend
         let uploadedDocuments = []; 
         let validatedData = null;   
-        let modelTrained = false;   
+        let modelTrained = false; // This will be set by the new startTraining()
 
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -525,13 +526,6 @@
             setTimeout(() => { progressBar.classList.add('hidden'); progressFill.style.width = '0%'; }, 1500);
         }
 
-        /* Client-side conversion functions are now commented out - superseded by backend */
-        // async function convertFileToJSON(file, user) { ... }
-        // async function extractPDFText(file) { ... }
-        // async function extractWordText(file) { ... }
-        // function detectDocumentType(content) { ... }
-        // function extractTrainingData(content) { ... }
-
         function displayFileItem(fileName, status, error = null) {
             const fileList = document.getElementById('fileList');
             if (!fileList) return;
@@ -547,7 +541,6 @@
             fileList.appendChild(fileItem);
         }
 
-        // MODIFIED validateData to use backend
         async function validateData() {
             const format = document.getElementById('formatSelect').value;
             const inputText = document.getElementById('validationInput').value;
@@ -598,40 +591,102 @@
             updateStats(); 
         }
 
-
-        // Training functionality (simulation)
-        function startTraining() {
-            const epochs = parseInt(document.getElementById('epochs').value);
-            const learningRate = parseFloat(document.getElementById('learningRate').value);
-            const trainingDataText = document.getElementById('trainingData').value;
-            if (!trainingDataText.trim()) { alert('Inserire dati di training validati (JSON/YAML).'); return; }
-            let dataForTraining;
-            try { dataForTraining = JSON.parse(trainingDataText); } 
-            catch (e) { alert('Errore nel parsing dei dati di training. Assicurarsi sia JSON valido.'); return; }
-            simulateTraining(epochs, learningRate, dataForTraining);
-        }
-
-        function simulateTraining(epochs, learningRate, data) {
+        // MODIFIED startTraining to call backend simulated training
+        async function startTraining() {
             const statusDiv = document.getElementById('trainingStatus');
             const progressBar = document.getElementById('trainingProgress');
             const progressFill = document.getElementById('trainingFill');
-            if(!statusDiv || !progressBar || !progressFill) return;
-            statusDiv.innerHTML = '<div class="status-indicator status-info"></div> Avvio training...';
-            progressBar.classList.remove('hidden'); progressFill.style.width = '0%';
-            let currentEpoch = 0;
-            const trainingInterval = setInterval(() => {
-                currentEpoch++;
-                progressFill.style.width = ((currentEpoch / epochs) * 100) + '%';
-                statusDiv.innerHTML = `<div class="status-indicator status-info"></div> Training in corso... Epoca ${currentEpoch}/${epochs}<br>LR: ${learningRate}<br>Samples: ${Array.isArray(data) ? data.length : 1}`;
-                if (currentEpoch >= epochs) {
-                    clearInterval(trainingInterval);
-                    statusDiv.innerHTML = `<div class="status-indicator status-success"></div> ✅ Training completato! (Simulazione)`;
-                    modelTrained = true; 
-                    updateChatStatus(); updateStats();
-                    setTimeout(() => progressBar.classList.add('hidden'), 2000);
+            const modelStatusText = document.getElementById('modelStatusText');
+
+            if (!statusDiv || !progressBar || !progressFill || !modelStatusText) {
+                console.error("Training UI elements not found!");
+                alert("Errore UI: Elementi di training non trovati.");
+                return;
+            }
+            
+            // Check if there's data in the trainingData textarea
+            const trainingDataText = document.getElementById('trainingData').value;
+            if (!trainingDataText.trim()) {
+                alert('Per favore, carica e valida dei documenti, oppure inserisci manualmente i dati di training (JSON) prima di avviare il training simulato.');
+                return;
+            }
+            try {
+                JSON.parse(trainingDataText); // Quick check if it's valid JSON
+            } catch(e) {
+                alert('I dati nell\'area "Dati di Training" non sembrano essere JSON valido. Per favore, valida prima i dati.');
+                return;
+            }
+
+
+            statusDiv.innerHTML = '<div class="status-indicator status-info"></div> Avvio training simulato...';
+            modelStatusText.textContent = "Training simulato in corso...";
+            progressBar.classList.remove('hidden');
+            progressFill.style.width = '0%';
+            modelTrained = false; // Reset status
+            updateChatStatus(); // Update chat UI immediately
+
+            let currentProgress = 0;
+            const progressInterval = setInterval(() => {
+                if (currentProgress < 90) { 
+                    currentProgress += 10; // Simulate progress
+                    progressFill.style.width = currentProgress + '%';
+                    statusDiv.innerHTML = `<div class="status-indicator status-info"></div> Training simulato in corso... ${currentProgress}%`;
                 }
-            }, 1000);
+            }, 400); // Update progress every 0.4 seconds
+
+            try {
+                const response = await fetch('/training/start_simulated_training', {
+                    method: 'POST',
+                    headers: {
+                        // 'Content-Type': 'application/json', // Not needed for this specific POST if no body is sent
+                        // Session cookie is sent automatically
+                    }
+                    // No body is sent for this simulated training trigger
+                });
+
+                clearInterval(progressInterval); 
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    progressFill.style.width = '100%';
+                    statusDiv.innerHTML = `<div class="status-indicator status-success"></div> ${result.message || 'Training simulato completato!'} <br>Modello pronto per la chat.`;
+                    modelStatusText.textContent = "Modello addestrato (Simulato)";
+                    modelTrained = true; 
+                } else {
+                    progressFill.style.width = '0%'; 
+                    statusDiv.innerHTML = `<div class="status-indicator status-error"></div> Errore nel training simulato: ${result.message || 'Sconosciuto'}`;
+                    modelStatusText.textContent = "Errore nel training";
+                    modelTrained = false;
+                }
+            } catch (error) {
+                clearInterval(progressInterval); 
+                console.error('Error during simulated training request:', error);
+                progressFill.style.width = '0%';
+                statusDiv.innerHTML = `<div class="status-indicator status-error"></div> Errore di comunicazione con il server: ${error.message}`;
+                modelStatusText.textContent = "Errore di comunicazione";
+                modelTrained = false;
+            } finally {
+                updateStats(); 
+                updateChatStatus(); 
+                // Keep progress bar at 100% on success, hide on failure after a delay
+                setTimeout(() => {
+                    if (!modelTrained && progressBar) { 
+                        progressBar.classList.add('hidden');
+                        progressFill.style.width = '0%';
+                    } else if (modelTrained && progressBar){
+                        // Optionally hide progress bar even on success after a delay
+                        // progressBar.classList.add('hidden'); 
+                    }
+                }, 3000); 
+            }
         }
+
+        /*
+        // COMMENTED OUT: Old simulateTraining function
+        function simulateTraining(epochs, learningRate, data) {
+            // ... original logic ...
+        }
+        */
 
         // Chat functionality (simulation)
         function updateChatStatus() {
@@ -639,13 +694,23 @@
             const statusText = document.getElementById('chatStatusText');
             const chatInput = document.getElementById('chatInput');
             const sendButton = document.getElementById('sendButton');
-            if(!statusIndicator || !statusText || !chatInput || !sendButton) return;
+            const modelStatusInTrainingTab = document.getElementById('modelStatusText');
+
+
+            if(!statusIndicator || !statusText || !chatInput || !sendButton || !modelStatusInTrainingTab) return;
+            
             if (modelTrained) {
-                statusIndicator.className = 'status-indicator status-success'; statusText.textContent = 'Modello addestrato (Simulato)';
-                chatInput.disabled = false; sendButton.disabled = false; chatInput.placeholder = 'Chiedi (Simulato)...';
+                statusIndicator.className = 'status-indicator status-success'; 
+                statusText.textContent = 'Modello addestrato e pronto (Simulato)';
+                modelStatusInTrainingTab.textContent = "Modello addestrato (Simulato)";
+                chatInput.disabled = false; sendButton.disabled = false; 
+                chatInput.placeholder = 'Chiedi al chatbot simulato...';
             } else {
-                statusIndicator.className = 'status-indicator status-error'; statusText.textContent = 'Modello non addestrato';
+                statusIndicator.className = 'status-indicator status-error'; 
+                statusText.textContent = 'Modello non addestrato';
+                // modelStatusInTrainingTab text is set by startTraining()
                 chatInput.disabled = true; sendButton.disabled = true;
+                chatInput.placeholder = 'Completa il training per abilitare la chat.';
             }
         }
 
@@ -664,17 +729,17 @@
         }
 
         function generateAIResponse(userMessage) { // Simulation
-            return `Simulazione: Non ho una risposta per "${userMessage}".`;
+            return `Simulazione: Non ho una risposta specifica per "${userMessage}". Il modello è solo simulato.`;
         }
 
         // Statistics update
         function updateStats() {
             const dc = document.getElementById('documentsCount');
             const vc = document.getElementById('validatedCount');
-            const tc = document.getElementById('trainedCount');
+            const tc = document.getElementById('trainedCount'); // This now reflects 'modelTrained' status
             if(dc) dc.textContent = uploadedDocuments.length;
-            if(vc) vc.textContent = validatedData ? 1 : 0;
-            if(tc) tc.textContent = modelTrained ? 1 : 0;
+            if(vc) vc.textContent = validatedData ? 1 : 0; // Assuming validatedData means one successful validation
+            if(tc) tc.textContent = modelTrained ? 1 : 0; // Reflects if simulated training was 'successful'
         }
 
         const chatInputElement = document.getElementById('chatInput');
@@ -683,11 +748,6 @@
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
             });
         }
-
-        /* autoPopulateValidation and its related window.handleFiles reassignment are commented out */
-        // function autoPopulateValidation() { ... }
-        // const originalHandleFiles = window.handleFiles; 
-        // window.handleFiles = async function(files) { ... };
 
         updateChatStatus(); updateStats(); // Initial calls
 
